@@ -1,5 +1,8 @@
+// REQUIRE PACKAGES
+
 var gulp = require("gulp"),
     autoprefixer = require('autoprefixer-core'),
+    wiredep = require("wiredep").stream,
     connect = require("gulp-connect"),
     opn = require("opn"),
     csswring = require("csswring"),
@@ -8,78 +11,78 @@ var gulp = require("gulp"),
     rename = require("gulp-rename"),
     postcss = require("gulp-postcss"),
     uglify = require("gulp-uglify"),
-    rigger = require("gulp-rigger"),
+    rigger = require("gulp-useref"),
     sftp = require("gulp-sftp");
 
-// Пути для билда файлов
-var build = {
-    "html" : "./dist/",
-    "css" : "./dist/css/",
-    "js" : "./dist/js/",
-    "fonts" : "./dist/fonts/",
-    "img" : "./dist/img/",
-}
+// FOR DEVELOP
+
+    // SERVER
+    gulp.task('connect', function() {
+      connect.server({
+        root: 'app',
+        livereload: true,
+        port: 8888
+      });
+      opn('http://localhost:8888');
+    });
+
+    // HTML
+    gulp.task('html', function () {
+      gulp.src('./app/*.html')
+        .pipe(wiredep({
+          directory: './app/bower'
+        }))
+        .pipe(gulp.dest('./app'))
+        .pipe(connect.reload())
+    });
+
+    // CSS
+    gulp.task('css', function () {
+      gulp.src('./app/css/*.css')    
+        .pipe(connect.reload());
+    });
+
+    // JS
+    gulp.task('js', function () {
+      gulp.src('./app/js/*.js')
+        .pipe(connect.reload());
+    });
 
 
-// SERVER
-gulp.task('connect', function() {
-  connect.server({
-    root: 'app',
-    livereload: true,
-    port: 8888
-  });
-  opn('http://localhost:8888/build');
-});
+// FOR DEPLOY
+    
+    // CSS
+    gulp.task('min-css', function () {
+        var processors = [
+            autoprefixer({browsers: ['last 4 version']}),
+            csswring
+            // cssgrace,
+        ];
+      gulp.src('./app/css/main.css')    
+        .pipe(sourcemaps.init())
+        .pipe(postcss(processors))
+        .pipe(rename('style.min.css'))
+        .pipe(sourcemaps.write('.'))
+        .pipe(gulp.dest( './dist/css'))
+        .pipe(connect.reload());
+    });
 
-gulp.task('sftp', function () {
-    return gulp.src('./app/build/**/*')
-        .pipe(sftp({
-            host: 'newdayart.ru',
-            user: 'newdayart',
-            pass: 'qo4ORscJ',
-            remotePath: '/home/newdayart/data/www/newdayart.ru/'
-        }));
-});
-
-// HTML
-gulp.task('html', function () {
-  gulp.src('./app/*.html')
-    .pipe(gulp.dest( build.html ))
-    .pipe(connect.reload())
-});
-
-// CSS
-gulp.task('css', function () {
-    var processors = [
-        autoprefixer({browsers: ['last 15 version']}),
-        csswring
-        // cssgrace,
-    ];
-  gulp.src('./app/css/style.css')    
-    .pipe(sourcemaps.init())
-    .pipe(postcss(processors))
-    .pipe(rename('style.min.css'))
-    .pipe(sourcemaps.write('.'))
-    .pipe(gulp.dest( build.css ))
-    .pipe(connect.reload());
-});
-
-// JS
-gulp.task('js', function () {
-  gulp.src('./app/js/main.js')
-    .pipe(rigger())
-    .pipe(sourcemaps.init())
-    .pipe(uglify())
-    .pipe(sourcemaps.write('.'))
-    .pipe(gulp.dest( build.js ))
-    .pipe(connect.reload());
-});
+    // JS
+    gulp.task('min-js', function () {
+      gulp.src('./app/js/main.js')
+        .pipe(sourcemaps.init())
+        .pipe(uglify())
+        .pipe(sourcemaps.write('.'))
+        .pipe(gulp.dest( build.js ))
+        .pipe(connect.reload());
+    });
 
 // WATCH FILES 
 gulp.task('watch', function () {
   gulp.watch(['./app/*.html'], ['html']);
-  gulp.watch(['./app/css/style.css'], ['css']);
+  gulp.watch(['./app/css/*.css'], ['css']);
   gulp.watch(['./app/js/*.js'], ['js']);
+  gulp.watch(['./bower.json'], ['html']);
 
 });
 
