@@ -1,0 +1,9 @@
+{
+  "name": "project",
+  "dependencies": {
+    "jquery": "1.11",
+    "normalize.css": "~3.0.3",
+    "fancybox": "~2.1.5",
+    "html5shiv": "~3.7.2"
+  }
+}
