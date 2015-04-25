@@ -10,9 +10,36 @@ var gulp = require("gulp"),
     sourcemaps = require("gulp-sourcemaps"),
     rename = require("gulp-rename"),
     postcss = require("gulp-postcss"),
-    uglify = require("gulp-uglify"),
     rigger = require("gulp-useref"),
-    sftp = require("gulp-sftp");
+    sftp = require("gulp-sftp"),
+    useref = require('gulp-useref'),
+    gulpif = require('gulp-if'),
+    uglify = require('gulp-uglify'),
+    clean = require('gulp-clean'),
+    extend = require('gulp-html-extend'),
+    minifyCss = require('gulp-minify-css');
+
+// BUILD 
+    gulp.task('clean', function () {
+        return gulp.src('dist', {read: false})
+            .pipe(clean());
+    });
+
+    gulp.task('build', ['clean'], function () {
+        var assets = useref.assets();
+        var processors = [
+            autoprefixer({browsers: ['last 15 version']}),
+            cssgrace,
+            csswring
+        ];
+        return gulp.src('app/*.html')
+            .pipe(assets)
+            .pipe(gulpif('*.js', uglify()))
+            .pipe(gulpif('*.css', postcss(processors)))
+            .pipe(assets.restore())
+            .pipe(useref())
+            .pipe(gulp.dest('dist'));
+    });
 
 // FOR DEVELOP
 
@@ -23,11 +50,20 @@ var gulp = require("gulp"),
         livereload: true,
         port: 8888
       });
-      opn('http://localhost:8888');
+      opn('http://localhost:8888/index.html');
     });
 
+    // HTML FROM PARTIALS
+    gulp.task('extend', function () {
+        gulp.src('./app/html/*.html')
+            .pipe(extend({annotations:true,verbose:false})) 
+            .pipe(gulp.dest('./app'))
+     
+    })
+
     // HTML
-    gulp.task('html', function () {
+    gulp.task('html', ['extend'], function () {
+      
       gulp.src('./app/*.html')
         .pipe(wiredep({
           directory: './app/bower'
@@ -54,9 +90,8 @@ var gulp = require("gulp"),
     // CSS
     gulp.task('min-css', function () {
         var processors = [
-            autoprefixer({browsers: ['last 4 version']}),
+            autoprefixer({browsers: ['last 15 version']}),
             csswring
-            // cssgrace,
         ];
       gulp.src('./app/css/main.css')    
         .pipe(sourcemaps.init())
@@ -79,6 +114,9 @@ var gulp = require("gulp"),
 
 // WATCH FILES 
 gulp.task('watch', function () {
+  
+  gulp.watch(['./app/html/**/*.html'], ['html']);
+
   gulp.watch(['./app/*.html'], ['html']);
   gulp.watch(['./app/css/*.css'], ['css']);
   gulp.watch(['./app/js/*.js'], ['js']);
